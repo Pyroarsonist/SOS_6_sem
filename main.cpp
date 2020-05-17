@@ -1,88 +1,97 @@
-#include "Allocator.h"
-#include "Tester.h"
 #include <iostream>
+#include <vector>
+#include <stdlib.h>
+#include <time.h>
+#include "StreamOperator.h"
+#include "CountTime.h"
 
 using namespace std;
 
 int main() {
-    const size_t page_count = 128;
-    Allocator allocator(page_count);
-    Tester tester(&allocator);
-    void *pointers[1488];
-    size_t pointers_count = 0;
-    int menu_status = -1;
-    while (menu_status != 0) {
-        allocator.mem_dump();
-        cout << "Choose the action:" << endl << "1 - Allocate memory" << endl << "2 - Test allocator" << endl;
-        if (pointers_count != 0) {
-            cout << "3 - Free memory" << endl << "4 - Reallocate memory" << endl;
+    srand(time(0));
+
+    StreamOperator *stream_operator = nullptr;
+    auto start = 1;
+    auto end = 100;
+    auto min_operate_time = 1;
+    auto max_operate_time = 1000;
+    auto step_count = 10000;
+
+    double **data = new double *[end - start];
+    for (int i = 0; i < end - start; ++i)
+        data[i] = new double[2];
+    int p = 0;
+    for (int i = start; i < end; i++) {
+        int st = i - 1;
+        if (st < 0) {
+            st = 0;
         }
-        cout << "0 - Exit" << endl;
-
-        cin >> menu_status;
-        switch (menu_status) {
-            case 1: {
-                size_t size;
-                cout << "Enter the size of memory to allocate" << endl;
-
-                cin >> size;
-                void *ptr = allocator.mem_alloc(size);
-                if (ptr != nullptr) {
-                    pointers[pointers_count++] = ptr;
-                }
-                cout << "Current pointer: " << ptr << endl;
-                break;
-            }
-            case 2: {
-                size_t iteration_counter;
-                cout << "Enter the number of iterations" << endl;
-
-                cin >> iteration_counter;
-                tester.test(iteration_counter, pointers, &pointers_count);
-                break;
-            }
-            case 3: {
-                cout << "Choose block of memory to free:" << endl;
-                for (size_t i = 0; i < pointers_count; i++) {
-                    cout << i << " - " << pointers[i] << endl;
-                }
-
-                size_t n;
-                cin >> n;
-                if (n < pointers_count) {
-                    allocator.mem_free(pointers[n]);
-                    for (size_t i = n + 1; i < pointers_count; i++) {
-                        pointers[i - 1] = pointers[i];
-                    }
-                    pointers_count--;
-                }
-                break;
-            }
-            case 4: {
-                cout << "Choose block of memory to reallocate:" << endl;
-                for (size_t i = 0; i < pointers_count; i++) {
-                    cout << i << " - " << pointers[i] << endl;
-                }
-
-                size_t n;
-                cin >> n;
-                if (n < pointers_count) {
-                    size_t size;
-                    cout << "Enter the size of memory to reallocate" << endl;
-
-                    cin >> size;
-                    void *ptr = allocator.mem_realloc(pointers[n], size);
-                    if (ptr != nullptr) {
-                        pointers[n] = ptr;
-                    }
-                    cout << "Current pointer: " << ptr << endl;
-                }
-                break;
-            }
-            default:
-                break;
-        }
-        cin.get();
+        stream_operator = new StreamOperator(min_operate_time, max_operate_time, st, i + 1);
+        stream_operator->modeling_steps(step_count);
+        data[p][0] = i;
+        data[p][1] = stream_operator->processor.get_average_wait_time();
+        cout << "x= " << data[p][0] << " y=" << +data[p][1] << endl;
+        p++;
     }
+
+    cout << endl;
+
+    data = new double *[end - start + 1];
+    for (int i = 0; i < end - start; ++i)
+        data[i] = new double[2];
+    p = 0;
+    for (int i = start; i < end; i++) {
+        stream_operator = new StreamOperator(min_operate_time, max_operate_time, i - 1, i + 1);
+        stream_operator->modeling_steps(step_count);
+        data[p][0] = i;
+        data[p][1] = stream_operator->processor.get_free_processor_percent();
+        cout << "x= " << data[p][0] << " y=" << +data[p][1] << endl;
+        p++;
+    }
+
+    cout << endl;
+
+    data = new double *[end - start + 1];
+    for (int i = 0; i < end - start; ++i)
+        data[i] = new double[2];
+    p = 0;
+    stream_operator = new StreamOperator(min_operate_time, max_operate_time, start, end);
+
+    vector<CountTime> result;
+
+
+    for (int i = 0; i < step_count; i++) {
+        stream_operator->modeling_steps(1);
+        result.emplace_back(stream_operator->processor.request_count_wait_time());
+//        cout << res[i].to_string() << endl;
+    }
+
+    vector<CountTime> count_key;
+    for (int i = 0; i < result.size(); i++) {
+        CountTime curr_count_time = result[i];
+        bool is_in_list = false;
+        for (int j = 0; j < count_key.size(); j++) {
+            if (count_key.at(j).size == curr_count_time.size) {
+                count_key.at(j).wait_time = (count_key.at(j).wait_time + curr_count_time.wait_time) / 2;
+                is_in_list = true;
+                break;
+            }
+        }
+        if (!is_in_list) {
+            count_key.emplace_back(result[i]);
+        }
+    }
+
+
+    data = new double *[count_key.size()];
+    for (int i = 0; i < end - start; ++i)
+        data[i] = new double[2];
+
+    for (int i = 0; i < count_key.size(); i++) {
+        data[i][0] = count_key.at(i).wait_time;
+        data[i][1] = count_key.at(i).size;
+        cout << "x= " << data[p][0] << " y=" << +data[p][1] << endl;
+    }
+
     return 0;
 }
