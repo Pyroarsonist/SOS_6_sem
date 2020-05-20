@@ -1,97 +1,54 @@
 #include <iostream>
-#include <vector>
-#include <stdlib.h>
-#include <time.h>
-#include "StreamOperator.h"
-#include "CountTime.h"
+#include <chrono>
 
 using namespace std;
 
+void initial_func() {
+
+    int *C = new int[2];
+
+    for (int j = 500000000; j > 0; j--) {
+        C[0]++;
+        C[0]++;
+    }
+
+    C[1] = C[0];
+
+    cout << C[0];
+}
+
+void optimized_func() {
+
+    int *C = new int[2];
+
+    C[0] += 2 * 500000000;
+
+    C[1] = C[0];
+
+    cout << C[0];
+}
+
+
 int main() {
-    srand(time(0));
 
-    StreamOperator *stream_operator = nullptr;
-    auto start = 1;
-    auto end = 100;
-    auto min_operate_time = 1;
-    auto max_operate_time = 1000;
-    auto step_count = 10000;
+    auto t_start = std::chrono::high_resolution_clock::now();
 
-    double **data = new double *[end - start];
-    for (int i = 0; i < end - start; ++i)
-        data[i] = new double[2];
-    int p = 0;
-    for (int i = start; i < end; i++) {
-        int st = i - 1;
-        if (st < 0) {
-            st = 0;
-        }
-        stream_operator = new StreamOperator(min_operate_time, max_operate_time, st, i + 1);
-        stream_operator->modeling_steps(step_count);
-        data[p][0] = i;
-        data[p][1] = stream_operator->processor.get_average_wait_time();
-        cout << "x= " << data[p][0] << " y=" << +data[p][1] << endl;
-        p++;
-    }
+    initial_func();
 
-    cout << endl;
+    auto t_end = chrono::high_resolution_clock::now();
+    auto duration = chrono::duration_cast<chrono::nanoseconds>(t_end - t_start).count();
 
-    data = new double *[end - start + 1];
-    for (int i = 0; i < end - start; ++i)
-        data[i] = new double[2];
-    p = 0;
-    for (int i = start; i < end; i++) {
-        stream_operator = new StreamOperator(min_operate_time, max_operate_time, i - 1, i + 1);
-        stream_operator->modeling_steps(step_count);
-        data[p][0] = i;
-        data[p][1] = stream_operator->processor.get_free_processor_percent();
-        cout << "x= " << data[p][0] << " y=" << +data[p][1] << endl;
-        p++;
-    }
-
-    cout << endl;
-
-    data = new double *[end - start + 1];
-    for (int i = 0; i < end - start; ++i)
-        data[i] = new double[2];
-    p = 0;
-    stream_operator = new StreamOperator(min_operate_time, max_operate_time, start, end);
-
-    vector<CountTime> result;
+    cout << endl << "Old function execution time in nanoseconds: " << duration << endl;
 
 
-    for (int i = 0; i < step_count; i++) {
-        stream_operator->modeling_steps(1);
-        result.emplace_back(stream_operator->processor.request_count_wait_time());
-//        cout << res[i].to_string() << endl;
-    }
+    t_start = std::chrono::high_resolution_clock::now();
 
-    vector<CountTime> count_key;
-    for (int i = 0; i < result.size(); i++) {
-        CountTime curr_count_time = result[i];
-        bool is_in_list = false;
-        for (int j = 0; j < count_key.size(); j++) {
-            if (count_key.at(j).size == curr_count_time.size) {
-                count_key.at(j).wait_time = (count_key.at(j).wait_time + curr_count_time.wait_time) / 2;
-                is_in_list = true;
-                break;
-            }
-        }
-        if (!is_in_list) {
-            count_key.emplace_back(result[i]);
-        }
-    }
+    optimized_func();
 
+    t_end = chrono::high_resolution_clock::now();
+    duration = chrono::duration_cast<chrono::nanoseconds>(t_end - t_start).count();
 
-    data = new double *[count_key.size()];
-    for (int i = 0; i < end - start; ++i)
-        data[i] = new double[2];
-
-    for (int i = 0; i < count_key.size(); i++) {
-        data[i][0] = count_key.at(i).wait_time;
-        data[i][1] = count_key.at(i).size;
-        cout << "x= " << data[p][0] << " y=" << +data[p][1] << endl;
-    }
+    cout << endl << "Optimized function execution time in nanoseconds: " << duration << endl;
 
     return 0;
 }
