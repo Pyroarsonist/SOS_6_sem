@@ -1,54 +1,49 @@
 #include <iostream>
+#include <string>
+#include <unistd.h>
 #include <chrono>
 
 using namespace std;
 
-void initial_func() {
-
-    int *C = new int[2];
-
-    for (int j = 500000000; j > 0; j--) {
-        C[0]++;
-        C[0]++;
+void draw_cat() {
+    for (int i = 0; i < 1000000000; i++) {
+        printf("\nDrawing cat\n");
+        //process of drawing
+        usleep(1000);
     }
 
-    C[1] = C[0];
-
-    cout << C[0];
 }
 
-void optimized_func() {
-
-    int *C = new int[2];
-
-    C[0] += 2 * 500000000;
-
-    C[1] = C[0];
-
-    cout << C[0];
+static void draw_dog() {
+    printf("\nDrawing dog\n");
+    for (int i = 0; i < 1000000000; i++) {
+        //process of drawing
+        usleep(1000);
+    }
 }
-
 
 int main() {
+    printf("Inside main()\nEnter type of shape:\n");
+    string type_of_shape(100, '\0');;
+    scanf("%s", type_of_shape.c_str());
 
-    auto t_start = std::chrono::high_resolution_clock::now();
+    auto t_start = chrono::high_resolution_clock::now();
 
-    initial_func();
+
+
+    for (int i = 0; i < 0xffffff; ++i) {
+        if (type_of_shape == "dog")
+            draw_dog();
+        if (type_of_shape == "cat")
+            draw_cat();
+    }
 
     auto t_end = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::nanoseconds>(t_end - t_start).count();
 
-    cout << endl << "Old function execution time in nanoseconds: " << duration << endl;
+    auto duration = chrono::duration_cast<chrono::milliseconds>(t_end - t_start).count();
 
+    cout << endl << "Optimized function execution time in milliseconds: " << duration << endl;
 
-    t_start = std::chrono::high_resolution_clock::now();
-
-    optimized_func();
-
-    t_end = chrono::high_resolution_clock::now();
-    duration = chrono::duration_cast<chrono::nanoseconds>(t_end - t_start).count();
-
-    cout << endl << "Optimized function execution time in nanoseconds: " << duration << endl;
 
     return 0;
 }
